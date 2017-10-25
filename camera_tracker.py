@@ -1,9 +1,12 @@
 import numpy as np
 import cv2
+import os
+import pickle
 
 LOWER_IR = np.array([0,20,200])
 UPPER_IR = np.array([180,255,255])
-
+FILENAME = 'calMatrix.p'
+BASE_DIR = os.path.dirname(os.path.realpath(__name__))
 
 class CameraTracker:
     cx = None
@@ -20,6 +23,19 @@ class CameraTracker:
         return {'x':self.cx, 'y':self.cy}
 
     def calibrate(self):
+        oldfile = None
+        for file in os.listdir(BASE_DIR):
+            if file == FILENAME:
+                oldfile = file
+
+        if oldfile:
+            print('starting from previous calibration...')
+            with open(os.path.join(BASE_DIR, oldfile), 'rb') as f:
+                matrix = pickle.load(f)
+                return matrix
+        else:
+            print('No old configuration was found. please calibrate screen')
+
         cal_list = []
         width = 0
         height = 0
@@ -44,6 +60,7 @@ class CameraTracker:
 
             cv2.imshow('calibrate', frame)
 
+            # to finish press 'd'
             if cv2.waitKey(2) & 0xFF == ord('d'):
                 break
 
@@ -51,6 +68,8 @@ class CameraTracker:
             pts_origin = np.float32(cal_list)
             pts_dest = np.float32([[0, 0], [width, 0], [width, height],[0, height]])
             matrix = cv2.getPerspectiveTransform(pts_origin, pts_dest)
+            with open(os.path.join(BASE_DIR, FILENAME), 'wb') as f:
+                pickle.dump(matrix, f)
         else:
             matrix = np.eye(3)
 
