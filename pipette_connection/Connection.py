@@ -5,7 +5,7 @@ from twisted.internet.defer import inlineCallbacks
 class Connection(ApplicationSession):
     camera = None
     subscription = None
-    arduino_uri = u'com.pipette.arduino'
+    arduino_uri = u'com.p.a'
     ui_uri = u'com.pipette.ui'
 
     @inlineCallbacks
@@ -21,8 +21,12 @@ class Connection(ApplicationSession):
     def onDisconnect(self):
         print("DISCONNECTED")
 
-    def incoming_from_arduino(self, payload):
+    def clamp(self, x):
+        return max(0, min(x, 255))
+
+    def incoming_from_arduino(self, r, g, b):
         coords = self.camera.get_current_coords()
+        color = "#{0:02x}{1:02x}{2:02x}".format(self.clamp(r), self.clamp(g), self.clamp(b))
         if coords is not None:
-            print(coords['x'], coords['y'], payload)
-            self.publish(self.ui_uri, {'x':coords['x'], 'y':coords['y'], 'color': payload})
+            print(coords['x'], coords['y'], r, g, b)
+            self.publish(self.ui_uri, {'x':coords['x'], 'y':coords['y'], 'color': color})
